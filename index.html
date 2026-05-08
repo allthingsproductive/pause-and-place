@@ -348,7 +348,8 @@
     /* ── WORRY CARDS ── */
     .day-entries { display: flex; flex-direction: column; gap: 10px; }
     .day-entries-title { font-size: 13px; color: var(--ink2); font-weight: 500; }
-    .worry-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .worry-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 14px; display: flex; flex-direction: column; gap: 10px; transition: opacity 300ms ease; }
+    .worry-card.is-done { opacity: 0.5; }
     .card-head { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
     .level-badge { padding: 3px 10px; border-radius: 999px; font-size: 11px; letter-spacing: 0.03em; }
     .level-badge.low { background: var(--sage-soft); color: var(--sage); }
@@ -358,10 +359,64 @@
     .card-body { font-size: 14px; color: var(--ink); line-height: 1.55; }
     .card-tags { display: flex; flex-wrap: wrap; gap: 5px; }
     .card-mini-pill { padding: 3px 8px; border-radius: 999px; background: var(--warm-soft); color: var(--ink2); font-size: 11px; }
-    .card-actions { display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--line2); padding-top: 10px; }
+    .card-actions { display: flex; gap: 10px; align-items: center; justify-content: space-between; border-top: 1px solid var(--line2); padding-top: 10px; }
+    .card-actions-right { display: flex; gap: 10px; align-items: center; margin-left: auto; }
     .text-btn { font-size: 12px; color: var(--ink3); padding: 3px 0; transition: color 160ms ease; }
     .text-btn:hover { color: var(--ink); }
-    .released-badge { font-size: 11px; color: var(--sage); padding: 3px 8px; border-radius: 999px; background: var(--sage-soft); }
+
+    /* status badge on card */
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px; border-radius: 999px; font-size: 11px;
+    }
+    .status-badge .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .status-badge.still  { background: var(--rose-soft);   color: var(--rose);  }
+    .status-badge.still .dot  { background: var(--rose); }
+    .status-badge.lighter{ background: var(--amber-soft);  color: var(--amber); }
+    .status-badge.lighter .dot{ background: var(--amber); }
+    .status-badge.done   { background: var(--sage-soft);   color: var(--sage);  }
+    .status-badge.done .dot   { background: var(--sage); }
+
+    /* check-in inline panel */
+    .checkin-panel {
+      display: none; flex-direction: column; gap: 10px;
+      border-top: 1px solid var(--line2); padding-top: 12px;
+      animation: fadeUp 200ms ease;
+    }
+    .checkin-panel.show { display: flex; }
+    .checkin-q { font-size: 13px; color: var(--ink2); }
+    .checkin-choices { display: flex; gap: 7px; flex-wrap: wrap; }
+    .checkin-choice {
+      padding: 7px 13px; border-radius: 999px;
+      border: 1px solid var(--line); background: var(--surface2);
+      font-size: 13px; color: var(--ink2);
+      transition: all 140ms ease; cursor: pointer;
+    }
+    .checkin-choice:hover { border-color: var(--warm); background: var(--warm-soft); }
+    .checkin-choice.sel-still   { background: var(--rose-soft);  border-color: var(--rose);  color: var(--rose); }
+    .checkin-choice.sel-lighter { background: var(--amber-soft); border-color: var(--amber); color: var(--amber); }
+    .checkin-choice.sel-done    { background: var(--sage-soft);  border-color: var(--sage);  color: var(--sage); }
+
+    /* follow-up note */
+    .checkin-followup { display: none; flex-direction: column; gap: 8px; animation: fadeUp 180ms ease; }
+    .checkin-followup.show { display: flex; }
+    .checkin-followup-q { font-size: 13px; color: var(--ink2); font-style: italic; font-family: var(--serif); }
+    .checkin-followup textarea {
+      min-height: 72px; font-size: 13px;
+      border: 1px solid var(--line); border-radius: var(--r-sm);
+      background: var(--surface2); color: var(--ink);
+      padding: 10px 12px; resize: none; outline: none;
+      transition: border-color 180ms ease; line-height: 1.5;
+      font-family: var(--sans);
+    }
+    .checkin-followup textarea:focus { border-color: var(--warm); }
+    .checkin-followup textarea::placeholder { color: var(--ink3); font-style: italic; font-family: var(--serif); font-size: 13px; }
+    .checkin-save {
+      align-self: flex-start; padding: 8px 16px;
+      border-radius: 999px; background: var(--ink); color: #fff;
+      font-size: 13px; transition: all 160ms ease;
+    }
+    .checkin-save:hover { background: #3d3a36; }
 
     /* ── EMPTY STATE ── */
     .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 48px 24px; text-align: center; }
@@ -1137,24 +1192,85 @@ $("resetBtn").addEventListener("click", resetForm);
 $("exportBtn").addEventListener("click", downloadLog);
 
 // ── CARD ACTIONS (event delegation) ───────────────────
+// ── CARD ACTIONS (event delegation) ──────────────────
 document.addEventListener("click", async e => {
-  const btn = e.target.closest("button[data-action]"); if (!btn) return;
+  const btn = e.target.closest("button[data-action], button[data-pick]");
+  if (!btn) return;
   const id = btn.dataset.id;
+
+  // ── ลบ ────────────────────────────────────────────
   if (btn.dataset.action === "remove") {
     await persistDelete(id);
     renderHistory();
     const dd = $("dayEntriesTitle").dataset.date;
     if (dd) renderDayEntries(dd);
     toast("เอาออกจากกล่องแล้ว");
+    return;
   }
-  if (btn.dataset.action === "release") {
-    const w = worries.find(x=>x.id===id); if (!w) return;
-    const newVal = !w.released;
-    await persistPatch(id, { released: newVal });
+
+  // ── toggle check-in panel ─────────────────────────
+  if (btn.dataset.action === "checkin") {
+    const panel = $(`checkin-${id}`);
+    if (!panel) return;
+    const isOpen = panel.classList.contains("show");
+    // close all other panels first
+    document.querySelectorAll(".checkin-panel.show").forEach(p => {
+      p.classList.remove("show");
+      const fp = p.querySelector(".checkin-followup");
+      if (fp) fp.classList.remove("show");
+    });
+    if (!isOpen) panel.classList.add("show");
+    return;
+  }
+
+  // ── เลือกสถานะ ────────────────────────────────────
+  if (btn.dataset.pick) {
+    const pick = btn.dataset.pick; // still | lighter | done
+    // highlight selected choice
+    const panel = $(`checkin-${id}`);
+    panel.querySelectorAll(".checkin-choice").forEach(c => {
+      c.classList.remove("sel-still","sel-lighter","sel-done");
+    });
+    btn.classList.add(`sel-${pick}`);
+
+    // show follow-up question
+    const followup = $(`followup-${id}`);
+    const followupQ = $(`followup-q-${id}`);
+    const followupTxt = $(`followup-txt-${id}`);
+    followupQ.textContent = CHECKIN_FOLLOWUP[pick];
+    followupTxt.placeholder = CHECKIN_PLACEHOLDER[pick];
+    followupTxt.dataset.pick = pick;
+    followup.classList.add("show");
+    followupTxt.focus();
+    return;
+  }
+
+  // ── บันทึก check-in ───────────────────────────────
+  if (btn.dataset.action === "saveCheckin") {
+    const followupTxt = $(`followup-txt-${id}`);
+    const pick = followupTxt.dataset.pick;
+    if (!pick) return;
+
+    const note = followupTxt.value.trim();
+    const fields = {
+      checkInStatus: pick,
+      checkInNote: note,
+      checkInAt: new Date().toISOString(),
+      released: pick === "done",
+    };
+
+    await persistPatch(id, fields);
     renderHistory();
     const dd = $("dayEntriesTitle").dataset.date;
     if (dd) renderDayEntries(dd);
-    toast("อัปเดตสถานะแล้ว");
+
+    const msgs = {
+      still:   "บันทึกแล้ว ขอบคุณที่ check in กับตัวเองนะ",
+      lighter: "ดีใจที่มันเบาขึ้น บันทึกไว้แล้ว",
+      done:    "ผ่านมาได้แล้ว เก่งมากเลย",
+    };
+    toast(msgs[pick] || "อัปเดตแล้ว");
+    return;
   }
 });
 
@@ -1174,7 +1290,7 @@ function renderHistory() {
 function renderStats() {
   $("statTotal").textContent = worries.length;
   $("statHeavy").textContent = worries.filter(w=>w.level==="high").length;
-  $("statDone").textContent  = worries.filter(w=>w.released).length;
+  $("statDone").textContent  = worries.filter(w=>w.checkInStatus==="done").length;
 }
 
 function countTags(key) {
@@ -1204,21 +1320,66 @@ function renderRecent() {
   list.innerHTML = recent.map(w=>worryCardHTML(w)).join("");
 }
 
+// ── CHECK-IN CONFIG ──────────────────────────────────
+const CHECKIN_STATUS = {
+  still:   { label: "ยังหนักอยู่",   cls: "still"   },
+  lighter: { label: "เบาขึ้นแล้ว",  cls: "lighter" },
+  done:    { label: "ผ่านแล้ว",      cls: "done"    },
+};
+const CHECKIN_FOLLOWUP = {
+  still:   "มีอะไรเปลี่ยนไปบ้างไหมนับจากวันนั้น?",
+  lighter: "อะไรที่ทำให้มันเบาขึ้น?",
+  done:    "อะไรที่ช่วยให้ผ่านมาได้?",
+};
+const CHECKIN_PLACEHOLDER = {
+  still:   "เขียนสั้น ๆ หรือข้ามได้เลย…",
+  lighter: "จดไว้เป็น insight ให้ตัวเอง…",
+  done:    "สิ่งที่ได้เรียนรู้จากเรื่องนี้…",
+};
+
 function worryCardHTML(w) {
   const tags = [...(w.sourceTags||[]), ...(w.emotionTags||[])];
   const t = new Date(w.createdAt);
   const ts = t.toLocaleString("th-TH",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
-  return `<div class="worry-card">
+  const st = w.checkInStatus || null;
+  const isDone = st === "done";
+
+  const statusBadge = st
+    ? `<span class="status-badge ${CHECKIN_STATUS[st].cls}"><span class="dot"></span>${esc(CHECKIN_STATUS[st].label)}</span>`
+    : "";
+
+  // checkin history note
+  const noteHtml = w.checkInNote
+    ? `<div style="font-size:12px;color:var(--ink3);font-style:italic;padding:2px 0 0;line-height:1.5;">"${esc(w.checkInNote)}"</div>`
+    : "";
+
+  return `<div class="worry-card${isDone?" is-done":""}" data-id="${w.id}">
     <div class="card-head">
       <span class="level-badge ${w.level}">${esc(LEVEL_LABEL[w.level])}</span>
       <span class="card-time">${ts}</span>
     </div>
     <p class="card-body">${esc(w.worry)}</p>
     ${tags.length?`<div class="card-tags">${tags.map(t=>`<span class="card-mini-pill">${esc(t)}</span>`).join("")}</div>`:""}
+    ${noteHtml}
     <div class="card-actions">
-      ${w.released?`<span class="released-badge">วางแล้ว</span>`:""}
-      <button class="text-btn" data-action="release" data-id="${w.id}">${w.released?"ยังต้องดูต่อ":"วางไว้ก่อน"}</button>
-      <button class="text-btn" data-action="remove" data-id="${w.id}">ลบ</button>
+      <div>${statusBadge}</div>
+      <div class="card-actions-right">
+        <button class="text-btn" data-action="checkin" data-id="${w.id}">อัปเดตความรู้สึก</button>
+        <button class="text-btn" data-action="remove" data-id="${w.id}">ลบ</button>
+      </div>
+    </div>
+    <div class="checkin-panel" id="checkin-${w.id}">
+      <p class="checkin-q">ตอนนี้รู้สึกยังไงกับเรื่องนี้?</p>
+      <div class="checkin-choices">
+        <button class="checkin-choice${st==="still"?" sel-still":""}" data-pick="still" data-id="${w.id}">ยังหนักอยู่</button>
+        <button class="checkin-choice${st==="lighter"?" sel-lighter":""}" data-pick="lighter" data-id="${w.id}">เบาขึ้นแล้ว</button>
+        <button class="checkin-choice${st==="done"?" sel-done":""}" data-pick="done" data-id="${w.id}">ผ่านแล้ว</button>
+      </div>
+      <div class="checkin-followup" id="followup-${w.id}">
+        <p class="checkin-followup-q" id="followup-q-${w.id}"></p>
+        <textarea id="followup-txt-${w.id}" placeholder=""></textarea>
+        <button class="checkin-save" data-action="saveCheckin" data-id="${w.id}">บันทึก</button>
+      </div>
     </div>
   </div>`;
 }
@@ -1285,10 +1446,11 @@ function buildExport() {
   const emoP=countTags("emotionTags").map(([t,c])=>`${t}(${c})`).join(",")||"—";
   const entries=worries.length?worries.map((w,i)=>[
     `รายการที่ ${i+1}`,`วันที่: ${fmt(w.createdAt)}`,`ระดับ: ${LEVEL_LABEL[w.level]}`,
-    `สถานะ: ${w.released?"วางแล้ว":"ยังวนอยู่"}`,
+    `สถานะ: ${({still:"ยังหนักอยู่",lighter:"เบาขึ้นแล้ว",done:"ผ่านแล้ว"}[w.checkInStatus])||"ยังไม่ได้ check in"}`,
     `ต้นตอ: ${(w.sourceTags||[]).join(",")||"—"}`,`ความรู้สึก: ${(w.emotionTags||[]).join(",")||"—"}`,
     `กังวล: ${w.worry}`,`ข้อเท็จจริง: ${w.fact||"—"}`,`ใจเติมว่า: ${w.story||"—"}`,
     `ควบคุมได้: ${w.control||"—"}`,`ก้าวถัดไป: ${w.next||"—"}`,
+    `สิ่งที่ได้เรียนรู้: ${w.checkInNote||"—"}`,
   ].join("\n")).join("\n\n---\n\n"):"ยังไม่มีรายการ";
   return ["PROMPT FOR AI","คุณคือผู้ช่วยวิเคราะห์ pattern ความเครียดฯ ตอบเป็นภาษาไทย น้ำเสียงอ่อนโยน ไม่ตัดสิน","","สรุป: 1.pattern ที่เกิดซ้ำ 2.trigger 3.ต้นตอ+ความรู้สึกที่มักคู่กัน 4.ความคิดที่ใจเติมเอง 5.สิ่งที่ควบคุมได้ 6.ก้าวเล็กสัปดาห์หน้า 7.คำถามสะท้อนตัวเอง 3 ข้อ","","SUMMARY",`Export: ${fmt(new Date().toISOString())}`,`ทั้งหมด: ${total} | หนักมาก: ${heavy} | วางแล้ว: ${done}`,`ต้นตอบ่อย: ${srcP}`,`ความรู้สึกบ่อย: ${emoP}`,"","WORRY LOG",entries].join("\n");
 }
