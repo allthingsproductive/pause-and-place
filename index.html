@@ -156,63 +156,45 @@
     }
 
     /* ── NAV ── */
-    .top-nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 18px 20px 0;
-      gap: 10px;
-    }
-    .app-name {
-      font-family: var(--serif);
-      font-size: 17px;
-      color: var(--ink2);
-      letter-spacing: 0.01em;
-      flex-shrink: 0;
-    }
+    .top-nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 0; gap: 10px; }
+    .app-name { font-family: var(--serif); font-size: 17px; color: var(--ink2); letter-spacing: 0.01em; flex-shrink: 0; }
     .nav-center { display: flex; gap: 2px; background: var(--surface); border-radius: 999px; border: 1px solid var(--line); padding: 3px; }
     .nav-tab { padding: 5px 14px; border-radius: 999px; font-size: 13px; color: var(--ink3); transition: all 180ms ease; }
     .nav-tab.active { background: var(--ink); color: #fff; }
-    .user-btn {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 5px 10px 5px 5px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: var(--surface);
-      transition: all 160ms ease;
-      flex-shrink: 0;
-    }
-    .user-btn:hover { border-color: var(--warm); }
-    .user-avatar {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      object-fit: cover;
-      background: var(--warm-soft);
-    }
-    .user-avatar-placeholder {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      background: var(--warm-soft);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      color: var(--ink2);
-      font-weight: 500;
-    }
-    .user-name { font-size: 12px; color: var(--ink2); max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .sync-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: var(--sage);
-      flex-shrink: 0;
-      transition: background 300ms;
-    }
+
+    /* ── HAMBURGER ── */
+    .hamburger-btn { width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; flex-shrink: 0; transition: all 160ms ease; position: relative; }
+    .hamburger-btn:hover { border-color: var(--warm); }
+    .hamburger-btn .bar { width: 14px; height: 1.5px; background: var(--ink2); border-radius: 999px; }
+    .sync-dot { position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--sage); border: 1.5px solid var(--surface); transition: background 300ms; }
     .sync-dot.syncing { background: var(--amber); animation: pulse 1s ease infinite; }
-    .sync-dot.error   { background: var(--rose); }
+    .sync-dot.error { background: var(--rose); }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ── DRAWER ── */
+    .drawer-overlay { position: fixed; inset: 0; background: rgba(42,40,37,0.3); z-index: 150; opacity: 0; pointer-events: none; transition: opacity 200ms ease; }
+    .drawer-overlay.show { opacity: 1; pointer-events: auto; }
+    .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(280px,80vw); background: var(--surface); z-index: 160; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 240ms cubic-bezier(0.32,0,0.15,1); box-shadow: -8px 0 32px rgba(42,40,37,0.10); }
+    .drawer.show { transform: translateX(0); }
+    .drawer-head { padding: 20px 20px 16px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+    .drawer-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; }
+    .drawer-avatar-placeholder { width: 44px; height: 44px; border-radius: 50%; background: var(--warm-soft); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--ink2); font-weight: 500; margin-bottom: 10px; }
+    .drawer-name { font-size: 15px; color: var(--ink); font-weight: 500; }
+    .drawer-email { font-size: 12px; color: var(--ink3); margin-top: 2px; }
+    .drawer-body { flex: 1; display: flex; flex-direction: column; padding: 8px 0; overflow-y: auto; }
+    .drawer-item { display: flex; align-items: center; gap: 12px; padding: 13px 20px; font-size: 14px; color: var(--ink2); transition: background 140ms ease; width: 100%; text-align: left; font-family: var(--sans); }
+    .drawer-item:hover { background: var(--surface2); }
+    .drawer-item svg { width: 18px; height: 18px; color: var(--ink3); flex-shrink: 0; }
+    .drawer-item.danger { color: var(--rose); }
+    .drawer-item.danger svg { color: var(--rose); }
+    .drawer-divider { height: 1px; background: var(--line); margin: 6px 0; }
+    .drawer-nick-edit { display: none; flex-direction: column; gap: 8px; padding: 4px 20px 12px; }
+    .drawer-nick-edit.show { display: flex; }
+    .drawer-nick-edit input { border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface2); color: var(--ink); padding: 9px 12px; font-size: 14px; outline: none; transition: border-color 180ms ease; font-family: var(--sans); }
+    .drawer-nick-edit input:focus { border-color: var(--warm); }
+    .drawer-nick-edit .save-nick { padding: 8px 14px; border-radius: var(--r-sm); background: var(--ink); color: #fff; font-size: 13px; align-self: flex-start; }
+    .user-avatar { display: none; }
+    .user-avatar-placeholder { display: none; }
 
     /* ── VIEWS ── */
     .view { display: none; flex-direction: column; flex: 1; }
@@ -277,11 +259,11 @@
     .level-badge-lg.medium { background: var(--amber-soft); color: var(--amber); }
     .level-badge-lg.high { background: var(--rose-soft); color: var(--rose); }
     .summary-two-col { display: grid; grid-template-columns: 1fr 1fr; }
-    .summary-cell { padding: 14px 18px; display: flex; flex-direction: column; gap: 5px; }
+    .summary-cell { padding: 14px 18px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
     .summary-cell:first-child { border-right: 1px solid var(--line); }
     .summary-cell-wrap { border-bottom: 1px solid var(--line); }
     .summary-cell-label { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.05em; }
-    .summary-cell-val { font-size: 13px; color: var(--ink); line-height: 1.5; }
+    .summary-cell-val { font-size: 13px; color: var(--ink); line-height: 1.5; word-break: break-word; white-space: pre-wrap; }
     .summary-cell-val.muted { color: var(--ink3); font-style: italic; }
     .summary-next-block { padding: 14px 18px; border-bottom: 1px solid var(--line); }
     .summary-next-label { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
@@ -439,6 +421,38 @@
     </div>
   </div>
 
+  <!-- DRAWER OVERLAY -->
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+  <!-- DRAWER -->
+  <div class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div class="drawer-avatar-placeholder" id="drawerAvatarPlaceholder">?</div>
+      <img class="drawer-avatar hidden" id="drawerAvatarImg" alt="">
+      <span class="drawer-name" id="drawerName">—</span>
+      <span class="drawer-email" id="drawerEmail"></span>
+    </div>
+    <div class="drawer-body">
+      <button class="drawer-item" id="drawerNickBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        แก้ชื่อเล่น
+      </button>
+      <div class="drawer-nick-edit" id="drawerNickEdit">
+        <input id="drawerNickInput" placeholder="ชื่อเล่น…" maxlength="20">
+        <button class="save-nick" id="drawerNickSave" type="button">บันทึก</button>
+      </div>
+      <div class="drawer-divider"></div>
+      <button class="drawer-item" id="drawerExportBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export log
+      </button>
+      <div class="drawer-divider"></div>
+      <button class="drawer-item danger" id="drawerLogoutBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        ออกจากระบบ
+      </button>
+    </div>
+  </div>
+
   <!-- TOP NAV -->
   <nav class="top-nav">
     <span class="app-name">Pause and Place</span>
@@ -446,10 +460,10 @@
       <button class="nav-tab active" data-view="entry">เขียน</button>
       <button class="nav-tab" data-view="history">ย้อนดู</button>
     </div>
-    <button class="user-btn" id="userBtn">
-      <div class="user-avatar-placeholder" id="userAvatarPlaceholder">?</div>
-      <img class="user-avatar hidden" id="userAvatarImg" alt="">
-      <span class="user-name" id="userName">—</span>
+    <button class="hamburger-btn" id="hamburgerBtn">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
       <div class="sync-dot" id="syncDot"></div>
     </button>
   </nav>
@@ -726,12 +740,54 @@ $("loginBtn").addEventListener("click", async () => {
   }
 });
 
-$("userBtn").addEventListener("click", async () => {
-  if (!currentUser) return;
-  if (confirm(`ออกจากระบบ (${currentUser.displayName}) ใช่ไหม?`)) {
-    await logout();
+// ── DRAWER ────────────────────────────────────────────
+function openDrawer() {
+  $("drawer").classList.add("show");
+  $("drawerOverlay").classList.add("show");
+  // pre-fill nickname input
+  $("drawerNickInput").value = nickname;
+}
+function closeDrawer() {
+  $("drawer").classList.remove("show");
+  $("drawerOverlay").classList.remove("show");
+  $("drawerNickEdit").classList.remove("show");
+}
+
+$("hamburgerBtn").addEventListener("click", openDrawer);
+$("drawerOverlay").addEventListener("click", closeDrawer);
+
+$("drawerLogoutBtn").addEventListener("click", async () => {
+  closeDrawer();
+  if (confirm("ออกจากระบบใช่ไหม?")) await logout();
+});
+
+$("drawerExportBtn").addEventListener("click", () => {
+  closeDrawer();
+  downloadLog();
+});
+
+$("drawerNickBtn").addEventListener("click", () => {
+  $("drawerNickEdit").classList.toggle("show");
+  if ($("drawerNickEdit").classList.contains("show")) {
+    $("drawerNickInput").focus();
   }
 });
+
+async function saveDrawerNick() {
+  const val = $("drawerNickInput").value.trim();
+  if (!val) return;
+  nickname = val;
+  $("drawerNickEdit").classList.remove("show");
+  closeDrawer();
+  if (currentUser) {
+    try { await saveProfile(currentUser.uid, { nickname }); } catch(e){}
+  } else {
+    localStorage.setItem("wbNickname", nickname);
+  }
+  toast(`บันทึกชื่อ "${nickname}" แล้ว`);
+}
+$("drawerNickSave").addEventListener("click", saveDrawerNick);
+$("drawerNickInput").addEventListener("keydown", e => { if(e.key==="Enter") saveDrawerNick(); });
 
 // Subscribe to auth state
 onAuth(async (user) => {
@@ -740,14 +796,15 @@ onAuth(async (user) => {
     // Logged in
     $("loginScreen").classList.remove("show");
 
-    // Update nav user button
+    // Update drawer user info
     const name = user.displayName || user.email || "—";
-    $("userName").textContent = name.split(" ")[0];
-    $("userAvatarPlaceholder").textContent = name.charAt(0).toUpperCase();
+    $("drawerName").textContent = name;
+    $("drawerEmail").textContent = user.email || "";
+    $("drawerAvatarPlaceholder").textContent = name.charAt(0).toUpperCase();
     if (user.photoURL) {
-      $("userAvatarImg").src = user.photoURL;
-      $("userAvatarImg").classList.remove("hidden");
-      $("userAvatarPlaceholder").classList.add("hidden");
+      $("drawerAvatarImg").src = user.photoURL;
+      $("drawerAvatarImg").classList.remove("hidden");
+      $("drawerAvatarPlaceholder").classList.add("hidden");
     }
 
     // Load profile (nickname)
