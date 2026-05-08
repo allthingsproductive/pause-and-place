@@ -1148,7 +1148,7 @@ function renderRecent() {
 }
 
 function worryCardHTML(w) {
-  const tags = [...(w.sourceTags||[]),(... w.emotionTags||[])];
+  const tags = [...(w.sourceTags||[]), ...(w.emotionTags||[])];
   const t = new Date(w.createdAt);
   const ts = t.toLocaleString("th-TH",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
   return `<div class="worry-card">
