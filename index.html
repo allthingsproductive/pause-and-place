@@ -1,0 +1,1251 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Pause and Place</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f6f4f1;
+      --surface: #ffffff;
+      --surface2: #f9f8f6;
+      --ink: #2a2825;
+      --ink2: #5a5650;
+      --ink3: #9a958e;
+      --line: rgba(42,40,37,0.10);
+      --line2: rgba(42,40,37,0.06);
+      --warm: #b8a99a;
+      --warm-soft: #f0ece7;
+      --sage: #7a9e8e;
+      --sage-soft: #e8f0ec;
+      --rose: #b8806e;
+      --rose-soft: #f2e8e4;
+      --amber: #c4956a;
+      --amber-soft: #f5ede4;
+      --r: 18px;
+      --r-sm: 10px;
+      --serif: 'Lora', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100svh;
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, textarea, input { font: inherit; }
+    button { cursor: pointer; border: none; background: none; }
+
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ── LOADING SCREEN ── */
+    #loadingScreen {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      transition: opacity 300ms ease;
+    }
+    #loadingScreen.fade-out { opacity: 0; pointer-events: none; }
+    .loading-inner { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .loading-wordmark { font-family: var(--serif); font-size: 22px; color: var(--ink2); }
+    .spinner {
+      width: 22px; height: 22px;
+      border: 2px solid var(--line);
+      border-top-color: var(--warm);
+      border-radius: 50%;
+      animation: spin 700ms linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── LOGIN SCREEN ── */
+    #loginScreen {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 190;
+      padding: 32px 24px;
+    }
+    #loginScreen.show { display: flex; }
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 36px 28px;
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      text-align: center;
+    }
+    .login-wordmark { font-family: var(--serif); font-size: 28px; color: var(--ink); }
+    .login-desc { font-size: 14px; color: var(--ink3); line-height: 1.6; max-width: 260px; }
+    .btn-google {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 500;
+      width: 100%;
+      justify-content: center;
+      transition: all 160ms ease;
+    }
+    .btn-google:hover { background: var(--surface2); border-color: var(--warm); }
+    .btn-google svg { flex-shrink: 0; }
+    .login-note { font-size: 12px; color: var(--ink3); line-height: 1.5; }
+
+    /* ── MIGRATE BANNER ── */
+    .migrate-banner {
+      background: var(--amber-soft);
+      border: 1px solid var(--amber);
+      border-radius: var(--r-sm);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 16px 20px 0;
+    }
+    .migrate-banner.hidden { display: none; }
+    .migrate-text { font-size: 13px; color: var(--ink2); line-height: 1.5; }
+    .migrate-actions { display: flex; gap: 8px; }
+    .btn-migrate {
+      padding: 8px 14px;
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      font-weight: 500;
+      background: var(--ink);
+      color: #fff;
+      transition: all 160ms;
+    }
+    .btn-migrate:hover { background: #3d3a36; }
+    .btn-migrate-skip {
+      padding: 8px 14px;
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      color: var(--ink3);
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    /* ── NAV ── */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 0;
+      gap: 10px;
+    }
+    .app-name {
+      font-family: var(--serif);
+      font-size: 17px;
+      color: var(--ink2);
+      letter-spacing: 0.01em;
+      flex-shrink: 0;
+    }
+    .nav-center { display: flex; gap: 2px; background: var(--surface); border-radius: 999px; border: 1px solid var(--line); padding: 3px; }
+    .nav-tab { padding: 5px 14px; border-radius: 999px; font-size: 13px; color: var(--ink3); transition: all 180ms ease; }
+    .nav-tab.active { background: var(--ink); color: #fff; }
+    .user-btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 10px 5px 5px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      transition: all 160ms ease;
+      flex-shrink: 0;
+    }
+    .user-btn:hover { border-color: var(--warm); }
+    .user-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--warm-soft);
+    }
+    .user-avatar-placeholder {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--warm-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: var(--ink2);
+      font-weight: 500;
+    }
+    .user-name { font-size: 12px; color: var(--ink2); max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sync-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--sage);
+      flex-shrink: 0;
+      transition: background 300ms;
+    }
+    .sync-dot.syncing { background: var(--amber); animation: pulse 1s ease infinite; }
+    .sync-dot.error   { background: var(--rose); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ── VIEWS ── */
+    .view { display: none; flex-direction: column; flex: 1; }
+    .view.active { display: flex; }
+
+    /* ── ENTRY VIEW ── */
+    .entry-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 28px 20px 120px;
+      gap: 0;
+    }
+    .step-header { margin-bottom: 28px; }
+    .step-indicator { display: flex; gap: 5px; margin-bottom: 20px; }
+    .step-dot { height: 3px; flex: 1; border-radius: 999px; background: var(--line); transition: background 300ms ease; }
+    .step-dot.done { background: var(--warm); }
+    .step-dot.current { background: var(--ink); }
+    .step-q { font-family: var(--serif); font-size: 24px; line-height: 1.25; color: var(--ink); margin-bottom: 8px; }
+    .step-hint { font-size: 13px; color: var(--ink3); line-height: 1.5; }
+    .step-panel { display: none; flex-direction: column; gap: 16px; animation: fadeUp 240ms ease; }
+    .step-panel.active { display: flex; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .field-wrap { display: flex; flex-direction: column; gap: 6px; }
+    .field-label { font-size: 12px; color: var(--ink3); letter-spacing: 0.04em; text-transform: uppercase; }
+    textarea {
+      width: 100%; border: 1px solid var(--line); border-radius: var(--r-sm);
+      background: var(--surface); color: var(--ink); padding: 14px; font-size: 15px;
+      resize: none; outline: none; transition: border-color 180ms ease; line-height: 1.6;
+    }
+    textarea::placeholder { color: var(--warm); opacity: 1; font-style: italic; font-family: var(--serif); font-size: 14px; }
+    textarea:focus { border-color: var(--warm); }
+    .main-area { min-height: 160px; }
+    .mini-area { min-height: 90px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink2); font-size: 13px; transition: all 160ms ease; user-select: none; }
+    .chip.sel-low { background: var(--sage-soft); border-color: var(--sage); color: var(--sage); }
+    .chip.sel-medium { background: var(--amber-soft); border-color: var(--amber); color: var(--amber); }
+    .chip.sel-high { background: var(--rose-soft); border-color: var(--rose); color: var(--rose); }
+    .chip.sel { background: var(--warm-soft); border-color: var(--warm); color: var(--ink); }
+
+    .level-desc { margin-top: 12px; padding: 12px 14px; border-radius: var(--r-sm); background: var(--surface); border: 1px solid var(--line); font-size: 13px; color: var(--ink2); line-height: 1.5; min-height: 48px; font-style: italic; font-family: var(--serif); }
+
+    .other-input { border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); padding: 9px 13px; font-size: 13px; outline: none; width: 100%; transition: border-color 180ms ease; }
+    .other-input:focus { border-color: var(--warm); }
+    .other-input::placeholder { color: var(--ink3); }
+
+    .tag-limit-note { font-size: 11px; color: var(--ink3); margin-top: 2px; }
+
+    /* ── SUMMARY CARD ── */
+    .summary-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+    .summary-main-worry { padding: 18px 18px 14px; border-bottom: 1px solid var(--line); }
+    .summary-main-label { font-size: 11px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .summary-main-text { font-family: var(--serif); font-size: 17px; color: var(--ink); line-height: 1.5; }
+    .summary-level-bar { padding: 12px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+    .summary-level-label { font-size: 12px; color: var(--ink3); }
+    .level-badge-lg { padding: 5px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; }
+    .level-badge-lg.low { background: var(--sage-soft); color: var(--sage); }
+    .level-badge-lg.medium { background: var(--amber-soft); color: var(--amber); }
+    .level-badge-lg.high { background: var(--rose-soft); color: var(--rose); }
+    .summary-two-col { display: grid; grid-template-columns: 1fr 1fr; }
+    .summary-cell { padding: 14px 18px; display: flex; flex-direction: column; gap: 5px; }
+    .summary-cell:first-child { border-right: 1px solid var(--line); }
+    .summary-cell-wrap { border-bottom: 1px solid var(--line); }
+    .summary-cell-label { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.05em; }
+    .summary-cell-val { font-size: 13px; color: var(--ink); line-height: 1.5; }
+    .summary-cell-val.muted { color: var(--ink3); font-style: italic; }
+    .summary-next-block { padding: 14px 18px; border-bottom: 1px solid var(--line); }
+    .summary-next-label { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .summary-next-val { font-size: 14px; color: var(--ink); line-height: 1.5; padding-left: 12px; border-left: 2px solid var(--warm); }
+    .summary-tags-block { padding: 12px 18px; display: flex; flex-direction: column; gap: 8px; }
+    .summary-tag-row { display: flex; align-items: flex-start; gap: 8px; }
+    .summary-tag-key { font-size: 11px; color: var(--ink3); white-space: nowrap; padding-top: 4px; min-width: 48px; }
+    .summary-tag-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+    .summary-tag-pill { padding: 3px 10px; border-radius: 999px; background: var(--warm-soft); color: var(--ink2); font-size: 12px; }
+
+    /* ── HEAL CARD ── */
+    .heal-card { margin-top: 6px; background: linear-gradient(145deg,#f0ece7 0%,#ede8e2 100%); border: 1px solid rgba(184,169,154,0.3); border-radius: var(--r); padding: 22px 20px; display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center; }
+    .heal-icon { width: 40px; height: 40px; border-radius: 999px; background: rgba(184,169,154,0.2); display: flex; align-items: center; justify-content: center; }
+    .heal-text { font-family: var(--serif); font-size: 16px; color: var(--ink); line-height: 1.65; font-style: italic; }
+    .heal-name { color: var(--rose); font-style: normal; }
+    .heal-sub { font-size: 12px; color: var(--ink3); }
+
+    /* ── NICKNAME BAR ── */
+    .nickname-bar { background: var(--surface); border-radius: var(--r); border: 1px solid var(--line); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+    .nickname-label { font-size: 13px; color: var(--ink2); }
+    .nickname-row { display: flex; gap: 8px; }
+    .nickname-input { flex: 1; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface2); color: var(--ink); padding: 9px 13px; font-size: 14px; outline: none; transition: border-color 180ms ease; }
+    .nickname-input:focus { border-color: var(--warm); }
+    .nickname-input::placeholder { color: var(--ink3); font-style: italic; }
+    .nickname-save-btn { padding: 9px 16px; border-radius: var(--r-sm); background: var(--ink); color: #fff; font-size: 14px; transition: all 160ms ease; }
+    .nickname-save-btn:hover { background: #3d3a36; }
+
+    /* ── BOTTOM BAR ── */
+    .bottom-bar {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      padding: 12px 20px max(16px,env(safe-area-inset-bottom));
+      background: rgba(246,244,241,0.90);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      display: flex; gap: 10px; align-items: center;
+      border-top: 1px solid var(--line);
+    }
+    .btn-icon { width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink2); display: flex; align-items: center; justify-content: center; transition: all 160ms ease; flex-shrink: 0; }
+    .btn-icon:hover { border-color: var(--warm); }
+    .btn-icon svg { width: 18px; height: 18px; }
+    .btn-primary { flex: 1; min-height: 44px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 15px; font-weight: 500; transition: all 160ms ease; letter-spacing: 0.01em; }
+    .btn-primary:hover { background: #3d3a36; }
+    .btn-primary:active { transform: scale(0.98); }
+
+    /* ── HISTORY VIEW ── */
+    .history-wrap { flex: 1; padding: 24px 20px 100px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+    .history-header { display: flex; flex-direction: column; gap: 4px; }
+    .history-title { font-family: var(--serif); font-size: 22px; color: var(--ink); }
+    .history-sub { font-size: 13px; color: var(--ink3); }
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 14px 12px; display: flex; flex-direction: column; gap: 4px; }
+    .stat-num { font-family: var(--serif); font-size: 26px; color: var(--ink); line-height: 1; }
+    .stat-label { font-size: 11px; color: var(--ink3); }
+
+    /* ── CALENDAR ── */
+    .cal-wrap { background: var(--surface); border-radius: var(--r); border: 1px solid var(--line); padding: 16px; }
+    .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .cal-month { font-family: var(--serif); font-size: 16px; color: var(--ink); }
+    .cal-nav-btn { width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface2); display: flex; align-items: center; justify-content: center; color: var(--ink2); transition: all 160ms ease; }
+    .cal-nav-btn:hover { border-color: var(--warm); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+    .cal-day-label { text-align: center; font-size: 11px; color: var(--ink3); padding: 4px 0 8px; font-weight: 500; letter-spacing: 0.02em; }
+    .cal-day { aspect-ratio: 1; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--ink3); position: relative; cursor: default; }
+    .cal-day.has-entry { cursor: pointer; color: var(--ink); font-weight: 500; }
+    .cal-day.has-entry::after { content:''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 999px; background: var(--warm); }
+    .cal-day.today { background: var(--warm-soft); color: var(--ink); }
+    .cal-day.selected { background: var(--ink); color: #fff; }
+    .cal-day.selected::after { background: rgba(255,255,255,0.5); }
+    .cal-day.other-month { opacity: 0.3; }
+
+    /* ── PATTERN ── */
+    .pattern-section { display: flex; flex-direction: column; gap: 10px; }
+    .pattern-title-row { display: flex; align-items: center; justify-content: space-between; }
+    .section-title { font-family: var(--serif); font-size: 16px; color: var(--ink); }
+    .pattern-block { background: var(--surface); border-radius: var(--r); border: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .pattern-row { display: flex; flex-direction: column; gap: 7px; }
+    .pattern-label { font-size: 11px; color: var(--ink3); letter-spacing: 0.04em; text-transform: uppercase; }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag-pill { padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface2); font-size: 12px; color: var(--ink2); }
+    .tag-pill .count { color: var(--ink3); margin-left: 3px; }
+
+    /* ── WORRY CARDS ── */
+    .day-entries { display: flex; flex-direction: column; gap: 10px; }
+    .day-entries-title { font-size: 13px; color: var(--ink2); font-weight: 500; }
+    .worry-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .card-head { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+    .level-badge { padding: 3px 10px; border-radius: 999px; font-size: 11px; letter-spacing: 0.03em; }
+    .level-badge.low { background: var(--sage-soft); color: var(--sage); }
+    .level-badge.medium { background: var(--amber-soft); color: var(--amber); }
+    .level-badge.high { background: var(--rose-soft); color: var(--rose); }
+    .card-time { font-size: 11px; color: var(--ink3); }
+    .card-body { font-size: 14px; color: var(--ink); line-height: 1.55; }
+    .card-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+    .card-mini-pill { padding: 3px 8px; border-radius: 999px; background: var(--warm-soft); color: var(--ink2); font-size: 11px; }
+    .card-actions { display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--line2); padding-top: 10px; }
+    .text-btn { font-size: 12px; color: var(--ink3); padding: 3px 0; transition: color 160ms ease; }
+    .text-btn:hover { color: var(--ink); }
+    .released-badge { font-size: 11px; color: var(--sage); padding: 3px 8px; border-radius: 999px; background: var(--sage-soft); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 48px 24px; text-align: center; }
+    .empty-icon { width: 48px; height: 48px; border-radius: 999px; background: var(--warm-soft); display: flex; align-items: center; justify-content: center; }
+    .empty-text { font-size: 14px; color: var(--ink3); line-height: 1.6; }
+
+    /* ── EXPORT ── */
+    .export-area { background: var(--surface); border-radius: var(--r); border: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .export-desc { font-size: 13px; color: var(--ink2); line-height: 1.5; }
+
+    /* ── TOAST ── */
+    .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(12px); opacity: 0; pointer-events: none; max-width: min(400px,calc(100% - 40px)); background: var(--ink); color: #f5f2ee; border-radius: 999px; padding: 11px 20px; font-size: 13px; text-align: center; transition: opacity 200ms ease,transform 200ms ease; z-index: 100; white-space: nowrap; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .hidden { display: none !important; }
+    .divider { height: 1px; background: var(--line); border: none; }
+    @keyframes shimmer { from{opacity:0.5} to{opacity:1} }
+    .step-panel.active .step-q { animation: shimmer 600ms ease; }
+  </style>
+</head>
+<body>
+
+<!-- ── LOADING ── -->
+<div id="loadingScreen">
+  <div class="loading-inner">
+    <span class="loading-wordmark">Pause and Place</span>
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<!-- ── LOGIN ── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-wordmark">Pause and Place</div>
+    <p class="login-desc">A moment to pause. A place to put it down.</p>
+    <button class="btn-google" id="loginBtn">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+        <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+        <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+      </svg>
+      เข้าสู่ระบบด้วย Google
+    </button>
+    <p class="login-note">ข้อมูลของคุณปลอดภัย เก็บใน Firebase เฉพาะของคุณ</p>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- MIGRATE BANNER -->
+  <div class="migrate-banner hidden" id="migrateBanner">
+    <p class="migrate-text">พบข้อมูลเก่าในอุปกรณ์นี้ — ต้องการย้ายขึ้น cloud ไหม?</p>
+    <div class="migrate-actions">
+      <button class="btn-migrate" id="migrateBtn">ย้ายข้อมูลขึ้น Cloud</button>
+      <button class="btn-migrate-skip" id="migrateSkipBtn">ข้ามไปก่อน</button>
+    </div>
+  </div>
+
+  <!-- TOP NAV -->
+  <nav class="top-nav">
+    <span class="app-name">Pause and Place</span>
+    <div class="nav-center">
+      <button class="nav-tab active" data-view="entry">เขียน</button>
+      <button class="nav-tab" data-view="history">ย้อนดู</button>
+    </div>
+    <button class="user-btn" id="userBtn">
+      <div class="user-avatar-placeholder" id="userAvatarPlaceholder">?</div>
+      <img class="user-avatar hidden" id="userAvatarImg" alt="">
+      <span class="user-name" id="userName">—</span>
+      <div class="sync-dot" id="syncDot"></div>
+    </button>
+  </nav>
+
+  <!-- ENTRY VIEW -->
+  <div class="view active" id="viewEntry">
+    <div class="entry-wrap">
+      <div class="step-header">
+        <div class="step-indicator" id="stepDots"></div>
+      </div>
+
+      <!-- Step 0 -->
+      <div class="step-panel active" data-step="0">
+        <div class="step-q">ตอนนี้เรื่องไหนกำลังวนอยู่?</div>
+        <p class="step-hint">เขียนแบบดิบ ๆ ได้เลย ยังไม่ต้องหาคำตอบ แค่เอามันออกจากหัวก่อน</p>
+        <textarea class="main-area" id="worryInput" placeholder="เรื่องที่ค้างใจอยู่…" rows="6"></textarea>
+      </div>
+
+      <!-- Step 1 -->
+      <div class="step-panel" data-step="1">
+        <div class="step-q">มันหนักแค่ไหน?</div>
+        <p class="step-hint">เลือกตามความรู้สึกตอนนี้ ไม่ต้องแม่นถาวร</p>
+        <div class="chip-group" id="levelChips">
+          <button class="chip sel-low" type="button" data-level="low">เบา ๆ</button>
+          <button class="chip" type="button" data-level="medium">วนอยู่</button>
+          <button class="chip" type="button" data-level="high">หนักมาก</button>
+        </div>
+        <div class="level-desc" id="levelDesc">รู้สึกได้อยู่ แต่ยังรับมือได้ ไม่ได้กินพื้นที่มากนัก</div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-panel" data-step="2">
+        <div class="step-q">แยกเรื่องจริงออกจากสิ่งที่ใจเติม</div>
+        <p class="step-hint">บางช่องเว้นว่างได้ถ้ายังไม่ชัด</p>
+        <div class="two-col">
+          <div class="field-wrap">
+            <label class="field-label">ข้อเท็จจริง</label>
+            <textarea class="mini-area" id="factInput" placeholder="สิ่งที่เกิดขึ้นจริง ๆ…"></textarea>
+          </div>
+          <div class="field-wrap">
+            <label class="field-label">ใจกำลังเติมว่า</label>
+            <textarea class="mini-area" id="storyInput" placeholder="ที่กลัวว่าจะเกิด…"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-panel" data-step="3">
+        <div class="step-q">มีอะไรที่จับต้องได้บ้าง?</div>
+        <p class="step-hint">ไม่ต้องแก้ทั้งหมด เลือกแค่ก้าวเล็กที่สุดหนึ่งอย่าง</p>
+        <div class="two-col">
+          <div class="field-wrap">
+            <label class="field-label">สิ่งที่ควบคุมได้</label>
+            <textarea class="mini-area" id="controlInput" placeholder="อยู่ในมือเรา…"></textarea>
+          </div>
+          <div class="field-wrap">
+            <label class="field-label">ก้าวเล็กถัดไป</label>
+            <textarea class="mini-area" id="nextInput" placeholder="อย่างแรกที่จะทำ…"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step-panel" data-step="4">
+        <div class="step-q">ติด tag แล้วพักไว้ก่อน</div>
+        <p class="step-hint">ช่วยให้เห็น pattern เมื่อกลับมาดูทีหลัง</p>
+        <div class="field-wrap">
+          <label class="field-label">ต้นตอหลัก</label>
+          <p class="tag-limit-note">เลือกได้ 1–2 อัน</p>
+          <div class="chip-group" id="sourceChips">
+            <button class="chip" type="button" data-tag="งาน/เรียน">งาน/เรียน</button>
+            <button class="chip" type="button" data-tag="ความสัมพันธ์">ความสัมพันธ์</button>
+            <button class="chip" type="button" data-tag="เงิน">เงิน</button>
+            <button class="chip" type="button" data-tag="สุขภาพ">สุขภาพ</button>
+            <button class="chip" type="button" data-tag="เวลา/ภาระ">เวลา/ภาระ</button>
+            <button class="chip" type="button" data-tag="ตัวเอง/อนาคต">ตัวเอง/อนาคต</button>
+          </div>
+          <input class="other-input" id="sourceOther" placeholder="อื่น ๆ…" style="margin-top:8px">
+        </div>
+        <div class="field-wrap">
+          <label class="field-label">ความรู้สึกตอนนี้</label>
+          <p class="tag-limit-note">เลือกได้ 1–2 อัน</p>
+          <div class="chip-group" id="emotionChips">
+            <button class="chip" type="button" data-tag="กังวล">กังวล</button>
+            <button class="chip" type="button" data-tag="กลัว">กลัว</button>
+            <button class="chip" type="button" data-tag="เศร้า">เศร้า</button>
+            <button class="chip" type="button" data-tag="โกรธ">โกรธ</button>
+            <button class="chip" type="button" data-tag="เหนื่อย">เหนื่อย</button>
+            <button class="chip" type="button" data-tag="สับสน">สับสน</button>
+            <button class="chip" type="button" data-tag="โดดเดี่ยว">โดดเดี่ยว</button>
+          </div>
+          <input class="other-input" id="emotionOther" placeholder="อื่น ๆ…" style="margin-top:8px">
+        </div>
+      </div>
+
+      <!-- Step 5: Summary -->
+      <div class="step-panel" data-step="5">
+        <div class="step-q">วางลงกล่อง</div>
+        <p class="step-hint">ไม่ต้องแบกไปทั้งหมด สิ่งที่เขียนไว้รอที่นี่แล้ว</p>
+        <div class="nickname-bar" id="nicknameBar">
+          <span class="nickname-label">ก่อนวาง — เราเรียกคุณว่าอะไรดี?</span>
+          <div class="nickname-row">
+            <input class="nickname-input" id="nicknameInput" placeholder="ชื่อเล่น…" maxlength="20">
+            <button class="nickname-save-btn" id="nicknameSaveBtn" type="button">บันทึก</button>
+          </div>
+        </div>
+        <div class="summary-card" id="summaryCard"></div>
+        <div class="heal-card" id="healCard"></div>
+      </div>
+    </div>
+
+    <div class="bottom-bar" id="entryBar">
+      <button class="btn-icon" id="backBtn" style="visibility:hidden">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <button class="btn-primary" id="nextBtn">ถัดไป</button>
+      <button class="btn-icon" id="resetBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- HISTORY VIEW -->
+  <div class="view" id="viewHistory">
+    <div class="history-wrap">
+      <div class="history-header">
+        <h2 class="history-title">ย้อนดู</h2>
+        <p class="history-sub">แตะวันที่มีจุดสีเพื่อดูรายการ</p>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><span class="stat-num" id="statTotal">0</span><span class="stat-label">ทั้งหมด</span></div>
+        <div class="stat-card"><span class="stat-num" id="statHeavy">0</span><span class="stat-label">หนักมาก</span></div>
+        <div class="stat-card"><span class="stat-num" id="statDone">0</span><span class="stat-label">วางแล้ว</span></div>
+      </div>
+      <div class="cal-wrap">
+        <div class="cal-nav">
+          <button class="cal-nav-btn" id="calPrev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <span class="cal-month" id="calMonthLabel"></span>
+          <button class="cal-nav-btn" id="calNext"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <div class="pattern-section">
+        <span class="section-title">Pattern</span>
+        <div class="pattern-block">
+          <div class="pattern-row"><span class="pattern-label">ต้นตอที่เจอบ่อย</span><div class="pill-row" id="sourcePattern"></div></div>
+          <hr class="divider">
+          <div class="pattern-row"><span class="pattern-label">ความรู้สึกที่เจอบ่อย</span><div class="pill-row" id="emotionPattern"></div></div>
+        </div>
+      </div>
+      <div class="day-entries hidden" id="dayEntries">
+        <span class="day-entries-title" id="dayEntriesTitle"></span>
+        <div id="dayEntriesList"></div>
+      </div>
+      <div class="pattern-section" id="recentSection">
+        <div class="pattern-title-row">
+          <span class="section-title">ล่าสุด</span>
+          <button class="text-btn" id="clearAllBtn">ล้างทั้งหมด</button>
+        </div>
+        <div id="recentList"></div>
+      </div>
+      <div class="export-area">
+        <span class="section-title" style="font-size:14px">Export log</span>
+        <p class="export-desc">ดาวน์โหลดเป็น .txt พร้อม prompt สำหรับให้ AI วิเคราะห์ pattern ต่อ</p>
+        <button class="btn-primary" style="border-radius:999px;padding:11px 20px;font-size:14px" id="exportBtn">ดาวน์โหลด log + prompt</button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <button class="btn-primary" id="writeNewBtn">+ เขียนรายการใหม่</button>
+    </div>
+  </div>
+
+</div><!-- .app -->
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ════════════════════════════════════════════
+     MAIN SCRIPT  (ES module — ต้องใช้ web server)
+═════════════════════════════════════════════ -->
+<script type="module">
+import {
+  loginGoogle, logout, onAuth,
+  saveWorry, loadWorries, deleteWorry, patchWorry, clearAllWorries,
+  getProfile, saveProfile,
+  migrateLocalToFirestore,
+} from "./firebase.js";
+
+// ── CONSTANTS ─────────────────────────────────────────
+const SK           = "pause-and-place-v1";       // localStorage fallback key
+const SK_MIGRATED  = "wb-migrated";        // flag: local data already migrated
+const TOTAL_STEPS  = 6;
+const LEVEL_LABEL  = { low:"เบา ๆ", medium:"วนอยู่", high:"หนักมาก" };
+const LEVEL_DESC   = {
+  low:    "รู้สึกได้อยู่ แต่ยังรับมือได้ ไม่ได้กินพื้นที่มากนัก",
+  medium: "วนอยู่ในหัวบ่อย ๆ กินแรงงานใจมากพอสมควร",
+  high:   "หนักมาก รู้สึกท่วมหัว หรือควบคุมไม่ค่อยได้",
+};
+const HEAL_POOL = {
+  low: [
+    (n)=>`${n} รู้จักตัวเองดีมากเลย ที่หยุดสังเกตความรู้สึกได้แบบนี้ไม่ใช่เรื่องเล็ก`,
+    (n)=>`เรื่องแบบนี้มันวนบ้างเป็นเรื่องปกติ ${n} ไม่ได้อ่อนแอเลยที่รู้สึกแบบนี้`,
+    (n)=>`${n} พักไว้ตรงนี้ได้เลย ไม่ต้องแบกไปคนเดียวตลอด`,
+  ],
+  medium: [
+    (n)=>`${n} รู้สึกหนักได้ มันไม่ต้องเบาตลอดเวลา การเขียนออกมาแบบนี้คือความกล้าชนิดหนึ่ง`,
+    (n)=>`ที่มันวนอยู่เพราะ ${n} ใส่ใจเรื่องนั้นจริง ๆ ความรู้สึกแบบนี้มีความหมาย`,
+    (n)=>`${n} ทำได้ดีมากแล้วที่เดินมาถึงตรงนี้ พักหายใจก่อนก็ได้`,
+  ],
+  high: [
+    (n)=>`${n} ผ่านมาถึงตรงนี้ได้ นั่นหมายความว่ายังสู้อยู่เสมอ`,
+    (n)=>`เรื่องหนักขนาดนี้ ${n} ไม่ต้องแก้ทุกอย่างในคืนนี้ก็ได้ แค่ก้าวเล็ก ๆ ก้าวเดียวก็พอ`,
+    (n)=>`${n} ไม่ได้อยู่คนเดียวกับความรู้สึกนี้ ถ้ายังหนักมาก อย่าลังเลที่จะหาคนคุยนะ`,
+  ],
+};
+
+// ── STATE ─────────────────────────────────────────────
+let currentUser  = null;    // Firebase user object
+let worries      = [];      // in-memory array (source of truth for UI)
+let nickname     = "";
+let currentStep  = 0;
+let selectedLevel   = "low";
+let selectedSources = [];
+let selectedEmotions= [];
+let calYear, calMonth, selectedDate = null;
+let isSyncing = false;
+
+// ── DOM HELPERS ───────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+
+function setSyncState(state) {
+  // state: 'idle' | 'syncing' | 'error'
+  const dot = $("syncDot");
+  dot.classList.remove("syncing","error");
+  if (state === "syncing") dot.classList.add("syncing");
+  if (state === "error")   dot.classList.add("error");
+}
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c=>
+    ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+}
+
+function unique(arr, other) {
+  const o = other.trim();
+  return [...new Set(o ? [...arr, o] : arr)];
+}
+
+function hideLoading() {
+  const s = $("loadingScreen");
+  s.classList.add("fade-out");
+  setTimeout(()=> s.style.display = "none", 320);
+}
+
+// ── AUTH FLOW ─────────────────────────────────────────
+$("loginBtn").addEventListener("click", async () => {
+  try {
+    $("loginBtn").textContent = "กำลังเข้าสู่ระบบ…";
+    $("loginBtn").disabled = true;
+    await loginGoogle();
+    // onAuth callback handles the rest
+  } catch (err) {
+    console.error(err);
+    toast("เข้าสู่ระบบไม่สำเร็จ ลองใหม่อีกครั้ง");
+    $("loginBtn").innerHTML = `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg> เข้าสู่ระบบด้วย Google`;
+    $("loginBtn").disabled = false;
+  }
+});
+
+$("userBtn").addEventListener("click", async () => {
+  if (!currentUser) return;
+  if (confirm(`ออกจากระบบ (${currentUser.displayName}) ใช่ไหม?`)) {
+    await logout();
+  }
+});
+
+// Subscribe to auth state
+onAuth(async (user) => {
+  currentUser = user;
+  if (user) {
+    // Logged in
+    $("loginScreen").classList.remove("show");
+
+    // Update nav user button
+    const name = user.displayName || user.email || "—";
+    $("userName").textContent = name.split(" ")[0];
+    $("userAvatarPlaceholder").textContent = name.charAt(0).toUpperCase();
+    if (user.photoURL) {
+      $("userAvatarImg").src = user.photoURL;
+      $("userAvatarImg").classList.remove("hidden");
+      $("userAvatarPlaceholder").classList.add("hidden");
+    }
+
+    // Load profile (nickname)
+    try {
+      const profile = await getProfile(user.uid);
+      nickname = profile.nickname || "";
+    } catch(e) { nickname = ""; }
+
+    // Check for local data to migrate
+    checkMigration();
+
+    // Load worries from Firestore
+    await refreshWorries();
+    hideLoading();
+
+  } else {
+    // Not logged in
+    worries = loadLocal();
+    hideLoading();
+    $("loginScreen").classList.add("show");
+  }
+
+  initCal();
+  renderStep();
+  renderHistory();
+});
+
+// ── DATA LAYER ────────────────────────────────────────
+
+/** LocalStorage fallback */
+function loadLocal() {
+  try { return JSON.parse(localStorage.getItem(SK)) || []; }
+  catch { return []; }
+}
+function saveLocal() {
+  localStorage.setItem(SK, JSON.stringify(worries));
+}
+
+/** Refresh from Firestore (logged-in only) */
+async function refreshWorries() {
+  if (!currentUser) return;
+  setSyncState("syncing");
+  try {
+    worries = await loadWorries(currentUser.uid);
+    setSyncState("idle");
+  } catch(e) {
+    console.error("loadWorries failed:", e);
+    setSyncState("error");
+    toast("โหลดข้อมูลไม่สำเร็จ กำลังใช้ข้อมูลเก่า");
+    worries = loadLocal();
+  }
+  renderHistory();
+}
+
+/** Save single worry */
+async function persistSave(worry) {
+  if (!currentUser) { saveLocal(); return; }
+  setSyncState("syncing");
+  try {
+    await saveWorry(currentUser.uid, worry);
+    setSyncState("idle");
+  } catch(e) {
+    console.error("saveWorry failed:", e);
+    setSyncState("error");
+    toast("บันทึกไม่สำเร็จ — เก็บไว้ใน device ก่อน");
+    saveLocal();
+  }
+}
+
+/** Delete single worry */
+async function persistDelete(id) {
+  worries = worries.filter(w => w.id !== id);
+  if (!currentUser) { saveLocal(); return; }
+  setSyncState("syncing");
+  try {
+    await deleteWorry(currentUser.uid, id);
+    setSyncState("idle");
+  } catch(e) {
+    setSyncState("error");
+    toast("ลบไม่สำเร็จ ลองใหม่อีกครั้ง");
+  }
+}
+
+/** Patch worry fields */
+async function persistPatch(id, fields) {
+  worries = worries.map(w => w.id === id ? {...w, ...fields} : w);
+  if (!currentUser) { saveLocal(); return; }
+  setSyncState("syncing");
+  try {
+    await patchWorry(currentUser.uid, id, fields);
+    setSyncState("idle");
+  } catch(e) {
+    setSyncState("error");
+  }
+}
+
+/** Clear all worries */
+async function persistClearAll() {
+  worries = [];
+  if (!currentUser) { saveLocal(); return; }
+  setSyncState("syncing");
+  try {
+    await clearAllWorries(currentUser.uid);
+    setSyncState("idle");
+  } catch(e) {
+    setSyncState("error");
+  }
+}
+
+// ── MIGRATION ─────────────────────────────────────────
+function checkMigration() {
+  const local = loadLocal();
+  const alreadyMigrated = localStorage.getItem(SK_MIGRATED);
+  if (local.length > 0 && !alreadyMigrated) {
+    $("migrateBanner").classList.remove("hidden");
+  }
+}
+
+$("migrateBtn").addEventListener("click", async () => {
+  const local = loadLocal();
+  if (!currentUser || !local.length) return;
+  $("migrateBtn").textContent = "กำลังย้าย…";
+  $("migrateBtn").disabled = true;
+  try {
+    await migrateLocalToFirestore(currentUser.uid, local);
+    localStorage.setItem(SK_MIGRATED, "1");
+    $("migrateBanner").classList.add("hidden");
+    await refreshWorries();
+    renderHistory();
+    toast(`ย้ายข้อมูล ${local.length} รายการขึ้น Cloud แล้ว`);
+  } catch(e) {
+    toast("ย้ายข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง");
+    $("migrateBtn").textContent = "ย้ายข้อมูลขึ้น Cloud";
+    $("migrateBtn").disabled = false;
+  }
+});
+
+$("migrateSkipBtn").addEventListener("click", () => {
+  localStorage.setItem(SK_MIGRATED, "1");
+  $("migrateBanner").classList.add("hidden");
+});
+
+// ── NICKNAME ──────────────────────────────────────────
+function updateNicknameBar() {
+  $("nicknameBar").style.display = nickname ? "none" : "";
+  if (!nickname) $("nicknameInput").value = "";
+}
+
+$("nicknameSaveBtn").addEventListener("click", async () => {
+  const val = $("nicknameInput").value.trim();
+  if (!val) return;
+  nickname = val;
+  $("nicknameBar").style.display = "none";
+  if (currentUser) {
+    try { await saveProfile(currentUser.uid, { nickname }); } catch(e){}
+  } else {
+    localStorage.setItem("wbNickname", nickname);
+  }
+  renderHeal();
+  toast(`ยินดีที่ได้รู้จัก ${nickname} นะ`);
+});
+$("nicknameInput").addEventListener("keydown", e => { if(e.key==="Enter") $("nicknameSaveBtn").click(); });
+
+// ── HEAL MESSAGES ─────────────────────────────────────
+function getHealText(level, name) {
+  const pool = HEAL_POOL[level] || HEAL_POOL.low;
+  return pool[Math.floor(Math.random() * pool.length)](name || "คุณ");
+}
+function renderHeal() {
+  let text = esc(getHealText(selectedLevel, nickname));
+  if (nickname) text = text.replace(esc(nickname), `<span class="heal-name">${esc(nickname)}</span>`);
+  $("healCard").innerHTML = `
+    <div class="heal-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--rose)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </div>
+    <p class="heal-text">"${text}"</p>
+    <span class="heal-sub">A moment to pause. A place to put it down.</span>`;
+}
+
+// ── STEP LOGIC ────────────────────────────────────────
+function renderDots() {
+  $("stepDots").innerHTML = Array.from({length: TOTAL_STEPS}, (_,i) => {
+    const cls = i < currentStep ? "done" : i === currentStep ? "current" : "";
+    return `<div class="step-dot ${cls}"></div>`;
+  }).join("");
+}
+
+function renderStep() {
+  document.querySelectorAll(".step-panel").forEach(p =>
+    p.classList.toggle("active", +p.dataset.step === currentStep)
+  );
+  renderDots();
+  $("backBtn").style.visibility = currentStep === 0 ? "hidden" : "visible";
+  $("nextBtn").textContent = currentStep === TOTAL_STEPS - 1 ? "บันทึกและวาง" : "ถัดไป";
+  if (currentStep === TOTAL_STEPS - 1) renderSummary();
+}
+
+function renderSummary() {
+  const src  = unique(selectedSources, $("sourceOther").value);
+  const emo  = unique(selectedEmotions, $("emotionOther").value);
+  const worry   = $("worryInput").value.trim();
+  const fact    = $("factInput").value.trim();
+  const story   = $("storyInput").value.trim();
+  const next    = $("nextInput").value.trim();
+  const muted   = (v) => v ? 'class="summary-cell-val"' : 'class="summary-cell-val muted"';
+
+  $("summaryCard").innerHTML = `
+    <div class="summary-main-worry">
+      <div class="summary-main-label">เรื่องที่วนอยู่</div>
+      <div class="summary-main-text">${esc(worry)}</div>
+    </div>
+    <div class="summary-level-bar">
+      <span class="summary-level-label">ระดับความหนัก</span>
+      <span class="level-badge-lg ${selectedLevel}">${esc(LEVEL_LABEL[selectedLevel])}</span>
+    </div>
+    <div class="summary-cell-wrap">
+      <div class="summary-two-col">
+        <div class="summary-cell">
+          <span class="summary-cell-label">ข้อเท็จจริง</span>
+          <span ${muted(fact)}>${esc(fact||"ยังไม่ชัด")}</span>
+        </div>
+        <div class="summary-cell">
+          <span class="summary-cell-label">ใจกำลังเติมว่า</span>
+          <span ${muted(story)}>${esc(story||"ยังไม่ตอบก็ได้")}</span>
+        </div>
+      </div>
+    </div>
+    ${next?`<div class="summary-next-block">
+      <div class="summary-next-label">ก้าวเล็กถัดไป</div>
+      <div class="summary-next-val">${esc(next)}</div>
+    </div>`:""}
+    ${(src.length||emo.length)?`<div class="summary-tags-block">
+      ${src.length?`<div class="summary-tag-row"><span class="summary-tag-key">ต้นตอ</span><div class="summary-tag-pills">${src.map(t=>`<span class="summary-tag-pill">${esc(t)}</span>`).join("")}</div></div>`:""}
+      ${emo.length?`<div class="summary-tag-row"><span class="summary-tag-key">รู้สึก</span><div class="summary-tag-pills">${emo.map(t=>`<span class="summary-tag-pill">${esc(t)}</span>`).join("")}</div></div>`:""}
+    </div>`:""}`;
+
+  updateNicknameBar();
+  renderHeal();
+}
+
+async function goNext() {
+  if (currentStep === 0 && !$("worryInput").value.trim()) {
+    toast("เขียนเรื่องที่วนอยู่ในหัวสั้น ๆ ก่อนนะ");
+    $("worryInput").focus(); return;
+  }
+  if (currentStep === TOTAL_STEPS - 1) { await addWorry(); return; }
+  currentStep = Math.min(TOTAL_STEPS - 1, currentStep + 1);
+  renderStep();
+}
+
+function goBack() {
+  currentStep = Math.max(0, currentStep - 1);
+  renderStep();
+}
+
+function resetForm() {
+  ["worryInput","factInput","storyInput","controlInput","nextInput","sourceOther","emotionOther"]
+    .forEach(id => $(id).value = "");
+  selectedSources = []; selectedEmotions = [];
+  document.querySelectorAll(".chip").forEach(c => c.classList.remove("sel","sel-low","sel-medium","sel-high"));
+  document.querySelectorAll("#levelChips .chip").forEach(c => {
+    if (c.dataset.level==="low") c.classList.add("sel-low");
+  });
+  selectedLevel = "low";
+  $("levelDesc").textContent = LEVEL_DESC.low;
+  currentStep = 0; renderStep();
+  setTimeout(() => $("worryInput").focus(), 100);
+}
+
+async function addWorry() {
+  const w = $("worryInput").value.trim();
+  if (!w) return;
+  const entry = {
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    worry: w,
+    fact:    $("factInput").value.trim(),
+    story:   $("storyInput").value.trim(),
+    control: $("controlInput").value.trim(),
+    next:    $("nextInput").value.trim(),
+    level: selectedLevel,
+    sourceTags:  unique(selectedSources, $("sourceOther").value),
+    emotionTags: unique(selectedEmotions, $("emotionOther").value),
+    released: false,
+    createdAt: new Date().toISOString(),
+  };
+  worries.unshift(entry);
+  renderHistory();
+  await persistSave(entry);
+  toast("วางลงกล่องแล้ว ตอนนี้ไม่ต้องถือไว้คนเดียว");
+  resetForm();
+}
+
+// ── CHIP PICKERS ──────────────────────────────────────
+$("levelChips").addEventListener("click", e => {
+  const c = e.target.closest(".chip"); if (!c) return;
+  selectedLevel = c.dataset.level;
+  document.querySelectorAll("#levelChips .chip").forEach(ch=>ch.classList.remove("sel-low","sel-medium","sel-high"));
+  c.classList.add(`sel-${selectedLevel}`);
+  $("levelDesc").textContent = LEVEL_DESC[selectedLevel];
+});
+
+function tagPicker(containerId, refFn) {
+  $(containerId).addEventListener("click", e => {
+    const c = e.target.closest(".chip"); if (!c) return;
+    const tag = c.dataset.tag; const arr = refFn();
+    const idx = arr.indexOf(tag);
+    if (idx >= 0) { arr.splice(idx,1); c.classList.remove("sel"); return; }
+    if (arr.length >= 2) { toast("เลือกได้ไม่เกิน 2 อันต่อกลุ่ม"); return; }
+    arr.push(tag); c.classList.add("sel");
+  });
+}
+tagPicker("sourceChips",  () => selectedSources);
+tagPicker("emotionChips", () => selectedEmotions);
+
+// ── VIEW SWITCHING ────────────────────────────────────
+document.querySelectorAll(".nav-tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const view = btn.dataset.view;
+    document.querySelectorAll(".nav-tab").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    $(`view${view.charAt(0).toUpperCase()+view.slice(1)}`).classList.add("active");
+    if (view === "history") renderHistory();
+  });
+});
+$("writeNewBtn").addEventListener("click", () => document.querySelector(".nav-tab[data-view='entry']").click());
+$("nextBtn").addEventListener("click", goNext);
+$("backBtn").addEventListener("click", goBack);
+$("resetBtn").addEventListener("click", resetForm);
+$("exportBtn").addEventListener("click", downloadLog);
+
+// ── CARD ACTIONS (event delegation) ───────────────────
+document.addEventListener("click", async e => {
+  const btn = e.target.closest("button[data-action]"); if (!btn) return;
+  const id = btn.dataset.id;
+  if (btn.dataset.action === "remove") {
+    await persistDelete(id);
+    renderHistory();
+    const dd = $("dayEntriesTitle").dataset.date;
+    if (dd) renderDayEntries(dd);
+    toast("เอาออกจากกล่องแล้ว");
+  }
+  if (btn.dataset.action === "release") {
+    const w = worries.find(x=>x.id===id); if (!w) return;
+    const newVal = !w.released;
+    await persistPatch(id, { released: newVal });
+    renderHistory();
+    const dd = $("dayEntriesTitle").dataset.date;
+    if (dd) renderDayEntries(dd);
+    toast("อัปเดตสถานะแล้ว");
+  }
+});
+
+$("clearAllBtn").addEventListener("click", async () => {
+  if (!worries.length) return;
+  await persistClearAll();
+  renderHistory();
+  $("dayEntries").classList.add("hidden");
+  toast("ล้างกล่องแล้ว เริ่มใหม่ได้เบา ๆ");
+});
+
+// ── HISTORY RENDERING ────────────────────────────────
+function renderHistory() {
+  renderStats(); renderCalendar(); renderPattern(); renderRecent();
+}
+
+function renderStats() {
+  $("statTotal").textContent = worries.length;
+  $("statHeavy").textContent = worries.filter(w=>w.level==="high").length;
+  $("statDone").textContent  = worries.filter(w=>w.released).length;
+}
+
+function countTags(key) {
+  const m = new Map();
+  worries.forEach(w=>(w[key]||[]).forEach(t=>m.set(t,(m.get(t)||0)+1)));
+  return [...m.entries()].sort((a,b)=>b[1]-a[1]);
+}
+
+function renderPattern() {
+  const src = countTags("sourceTags").slice(0,6);
+  const emo = countTags("emotionTags").slice(0,6);
+  $("sourcePattern").innerHTML = src.length
+    ? src.map(([t,c])=>`<span class="tag-pill">${esc(t)}<span class="count"> · ${c}</span></span>`).join("")
+    : `<span class="tag-pill" style="color:var(--ink3)">ยังไม่มีข้อมูล</span>`;
+  $("emotionPattern").innerHTML = emo.length
+    ? emo.map(([t,c])=>`<span class="tag-pill">${esc(t)}<span class="count"> · ${c}</span></span>`).join("")
+    : `<span class="tag-pill" style="color:var(--ink3)">ยังไม่มีข้อมูล</span>`;
+}
+
+function renderRecent() {
+  const list = $("recentList");
+  const recent = worries.slice(0,5);
+  if (!recent.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" stroke-width="1.5" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div><p class="empty-text">ยังไม่มีรายการ<br>พร้อมเมื่อคุณพร้อม</p></div>`;
+    return;
+  }
+  list.innerHTML = recent.map(w=>worryCardHTML(w)).join("");
+}
+
+function worryCardHTML(w) {
+  const tags = [...(w.sourceTags||[]),(... w.emotionTags||[])];
+  const t = new Date(w.createdAt);
+  const ts = t.toLocaleString("th-TH",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
+  return `<div class="worry-card">
+    <div class="card-head">
+      <span class="level-badge ${w.level}">${esc(LEVEL_LABEL[w.level])}</span>
+      <span class="card-time">${ts}</span>
+    </div>
+    <p class="card-body">${esc(w.worry)}</p>
+    ${tags.length?`<div class="card-tags">${tags.map(t=>`<span class="card-mini-pill">${esc(t)}</span>`).join("")}</div>`:""}
+    <div class="card-actions">
+      ${w.released?`<span class="released-badge">วางแล้ว</span>`:""}
+      <button class="text-btn" data-action="release" data-id="${w.id}">${w.released?"ยังต้องดูต่อ":"วางไว้ก่อน"}</button>
+      <button class="text-btn" data-action="remove" data-id="${w.id}">ลบ</button>
+    </div>
+  </div>`;
+}
+
+// ── CALENDAR ─────────────────────────────────────────
+function initCal() {
+  const now = new Date(); calYear = now.getFullYear(); calMonth = now.getMonth();
+}
+
+function datesWithEntries() {
+  const s = new Set();
+  worries.forEach(w=>{ const d=new Date(w.createdAt); s.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`); });
+  return s;
+}
+
+function renderCalendar() {
+  const thM = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+  const thD = ["อา","จ","อ","พ","พฤ","ศ","ส"];
+  const today = new Date(); const entries = datesWithEntries();
+  $("calMonthLabel").textContent = `${thM[calMonth]} ${calYear+543}`;
+  const first = new Date(calYear,calMonth,1).getDay();
+  const days  = new Date(calYear,calMonth+1,0).getDate();
+  const prev  = new Date(calYear,calMonth,0).getDate();
+  let html = thD.map(d=>`<div class="cal-day-label">${d}</div>`).join("");
+  for(let i=0;i<first;i++) html+=`<div class="cal-day other-month">${prev-first+1+i}</div>`;
+  for(let d=1;d<=days;d++){
+    const key = `${calYear}-${calMonth}-${d}`;
+    const iso = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const cls = ["cal-day",
+      today.getFullYear()===calYear&&today.getMonth()===calMonth&&today.getDate()===d?"today":"",
+      entries.has(key)?"has-entry":"",
+      selectedDate===iso?"selected":"",
+    ].filter(Boolean).join(" ");
+    html+=`<div class="${cls}" ${entries.has(key)?`data-date="${iso}"`:""}>${d}</div>`;
+  }
+  const rem = (7-(first+days)%7)%7;
+  for(let d=1;d<=rem;d++) html+=`<div class="cal-day other-month">${d}</div>`;
+  $("calGrid").innerHTML = html;
+  $("calGrid").querySelectorAll(".has-entry").forEach(el=>{
+    el.addEventListener("click",()=>{ selectedDate=el.dataset.date; renderCalendar(); renderDayEntries(el.dataset.date); });
+  });
+}
+
+function renderDayEntries(isoDate) {
+  const [y,m,d] = isoDate.split("-").map(Number);
+  const list = worries.filter(w=>{const dt=new Date(w.createdAt);return dt.getFullYear()===y&&dt.getMonth()+1===m&&dt.getDate()===d;});
+  const t = $("dayEntriesTitle");
+  t.dataset.date = isoDate;
+  t.textContent = `วันที่ ${d} — ${list.length} รายการ`;
+  $("dayEntriesList").innerHTML = list.map(w=>worryCardHTML(w)).join("");
+  $("dayEntries").classList.remove("hidden");
+  $("dayEntries").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+$("calPrev").addEventListener("click",()=>{ calMonth--; if(calMonth<0){calMonth=11;calYear--;} selectedDate=null; $("dayEntries").classList.add("hidden"); renderCalendar(); });
+$("calNext").addEventListener("click",()=>{ calMonth++; if(calMonth>11){calMonth=0;calYear++;} selectedDate=null; $("dayEntries").classList.add("hidden"); renderCalendar(); });
+
+// ── EXPORT ───────────────────────────────────────────
+function fmt(iso){ return new Date(iso).toLocaleString("th-TH",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}); }
+
+function buildExport() {
+  const total=worries.length, heavy=worries.filter(w=>w.level==="high").length, done=worries.filter(w=>w.released).length;
+  const srcP=countTags("sourceTags").map(([t,c])=>`${t}(${c})`).join(",")||"—";
+  const emoP=countTags("emotionTags").map(([t,c])=>`${t}(${c})`).join(",")||"—";
+  const entries=worries.length?worries.map((w,i)=>[
+    `รายการที่ ${i+1}`,`วันที่: ${fmt(w.createdAt)}`,`ระดับ: ${LEVEL_LABEL[w.level]}`,
+    `สถานะ: ${w.released?"วางแล้ว":"ยังวนอยู่"}`,
+    `ต้นตอ: ${(w.sourceTags||[]).join(",")||"—"}`,`ความรู้สึก: ${(w.emotionTags||[]).join(",")||"—"}`,
+    `กังวล: ${w.worry}`,`ข้อเท็จจริง: ${w.fact||"—"}`,`ใจเติมว่า: ${w.story||"—"}`,
+    `ควบคุมได้: ${w.control||"—"}`,`ก้าวถัดไป: ${w.next||"—"}`,
+  ].join("\n")).join("\n\n---\n\n"):"ยังไม่มีรายการ";
+  return ["PROMPT FOR AI","คุณคือผู้ช่วยวิเคราะห์ pattern ความเครียดฯ ตอบเป็นภาษาไทย น้ำเสียงอ่อนโยน ไม่ตัดสิน","","สรุป: 1.pattern ที่เกิดซ้ำ 2.trigger 3.ต้นตอ+ความรู้สึกที่มักคู่กัน 4.ความคิดที่ใจเติมเอง 5.สิ่งที่ควบคุมได้ 6.ก้าวเล็กสัปดาห์หน้า 7.คำถามสะท้อนตัวเอง 3 ข้อ","","SUMMARY",`Export: ${fmt(new Date().toISOString())}`,`ทั้งหมด: ${total} | หนักมาก: ${heavy} | วางแล้ว: ${done}`,`ต้นตอบ่อย: ${srcP}`,`ความรู้สึกบ่อย: ${emoP}`,"","WORRY LOG",entries].join("\n");
+}
+
+function downloadLog() {
+  const blob=new Blob([buildExport()],{type:"text/plain;charset=utf-8"});
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download=`pause-and-place-${new Date().toISOString().slice(0,10)}.txt`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  toast("ดาวน์โหลดแล้ว");
+}
+
+// ── INIT ─────────────────────────────────────────────
+// onAuth callback above handles init after auth state resolves
+</script>
+</body>
+</html>
